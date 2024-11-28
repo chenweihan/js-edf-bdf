@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="author" value="Dmitry Konyshev, d.konyshev@neurobotics.ru">
+	<title>Neurobotics jsEDF online viewer</title>
+	<script src="edf.js"></script>
+
+	<link rel>
+	<style>
+		* {
+			font-family: 'Roboto Mono', monospace;
+			box-sizing: border-box;
+		}
+
+		html,
+		body {
+			margin: 0;
+			padding: 0;
+			background: #FFF;
+			overflow: hidden;
+		}
+
+		body {
+
+			height: 100%;
+			min-height: 100vh;
+		}
+	</style>
+</head>
+
+<body>
+
+	<div style="height: 80px; background: #CCC; padding: 10px;">
+		<input type="file" name="file" id="file" onchange="openFile(this.files)">
+	</div>
+
+	<script>
+
+		function openFile(files) {
+			const file = files[0];
+			const chunkSize = 1024 * 1024 * 4; // 每块大小 4MB，可根据需要调整
+			const chunks = Math.ceil(file.size / chunkSize); // 计算总块数
+			let currentChunk = 0; // 当前块索引
+			const chunkBuffers = []; // 存储每块的 ArrayBuffer
+
+			const fileReader = new FileReader();
+
+			fileReader.onload = function (e) {
+				console.log(`读取第 ${currentChunk + 1}/${chunks} 块`);
+				chunkBuffers.push(e.target.result); // 存储当前块的 ArrayBuffer
+
+				currentChunk++;
+				if (currentChunk < chunks) {
+					loadNextChunk(); // 读取下一块
+				} else {
+					console.log("所有块读取完成，开始拼接...");
+					const combinedBuffer = mergeBuffers(chunkBuffers);
+					console.log("拼接完成，开始解析 EDF 数据...");
+					const edf = new EDF(new Uint8Array(combinedBuffer));
+					console.log("EDF 数据解析完成：", edf);
+				}
+			};
+
+			fileReader.onerror = function (err) {
+				console.error("文件读取失败：", err);
+			};
+
+			function loadNextChunk() {
+				const start = currentChunk * chunkSize;
+				const end = Math.min(start + chunkSize, file.size);
+				const blob = file.slice(start, end);
+				fileReader.readAsArrayBuffer(blob); // 读取当前块
+			}
+
+			function mergeBuffers(buffers) {
+				const totalSize = buffers.reduce((sum, buf) => sum + buf.byteLength, 0);
+				const merged = new Uint8Array(totalSize);
+				let offset = 0;
+				for (const buf of buffers) {
+					merged.set(new Uint8Array(buf), offset);
+					offset += buf.byteLength;
+				}
+				return merged.buffer;
+			}
+
+			loadNextChunk(); // 开始读取第一块
+		}
+
+	</script>
+</body>
+
+</html>
