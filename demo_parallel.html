@@ -41,7 +41,7 @@
 
 		function openFile(files) {
 			const file = files[0];
-			const chunkSize = 1024 * 1024 * 4; // 每块大小 4MB，可根据需要调整
+			const chunkSize = 1024 * 1024 * 2; // 每块大小 4MB，可根据需要调整
 			const chunks = Math.ceil(file.size / chunkSize); // 计算总块数
 			let currentChunk = 0; // 当前块索引
 			const chunkBuffers = []; // 存储每块的 ArrayBuffer
